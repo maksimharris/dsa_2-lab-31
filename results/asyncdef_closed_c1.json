@@ -1,0 +1,20 @@
+{
+  "search": {
+    "requests": 26,
+    "rps": 0.43,
+    "p50_ms": 2207.9,
+    "p95_ms": 3042.5,
+    "p99_ms": 3056.4,
+    "max_ms": 3056.4,
+    "errors_percent": 0.0
+  },
+  "health": {
+    "requests": 600,
+    "rps": 10.0,
+    "p50_ms": 11927.4,
+    "p95_ms": 14023.5,
+    "p99_ms": 14797.7,
+    "max_ms": 15310.0,
+    "errors_percent": 0.0
+  }
+}

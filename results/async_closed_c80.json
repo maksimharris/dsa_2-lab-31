@@ -1,0 +1,22 @@
+{
+  "search": {
+    "error_kinds": {},
+    "requests": 979,
+    "rps": 16.32,
+    "p50_ms": 4923.6,
+    "p95_ms": 5555.0,
+    "p99_ms": 5993.2,
+    "max_ms": 6466.5,
+    "errors_percent": 0.0
+  },
+  "health": {
+    "error_kinds": {},
+    "requests": 600,
+    "rps": 10.0,
+    "p50_ms": 777.0,
+    "p95_ms": 1022.9,
+    "p99_ms": 1092.4,
+    "max_ms": 1164.4,
+    "errors_percent": 0.0
+  }
+}

@@ -1,0 +1,68 @@
+x-provider-healthcheck: &provider-healthcheck
+  test: ["CMD", "python", "-c",
+         "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+  interval: 2s
+  retries: 30
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flights
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flights"]
+      interval: 2s
+      retries: 30
+
+  # Параметры поставщиков из таблицы 1 условия.
+  provider1:
+    build: {context: ., dockerfile: provider/Dockerfile}
+    environment: {PROVIDER_ID: "1", MEAN_DELAY_MS: "300", ERROR_PERCENT: "5", SLOW_PERCENT: "0"}
+    healthcheck: *provider-healthcheck
+
+  provider2:
+    build: {context: ., dockerfile: provider/Dockerfile}
+    environment: {PROVIDER_ID: "2", MEAN_DELAY_MS: "500", ERROR_PERCENT: "5", SLOW_PERCENT: "0"}
+    healthcheck: *provider-healthcheck
+
+  provider3:
+    build: {context: ., dockerfile: provider/Dockerfile}
+    environment: {PROVIDER_ID: "3", MEAN_DELAY_MS: "800", ERROR_PERCENT: "5", SLOW_PERCENT: "10"}
+    healthcheck: *provider-healthcheck
+
+  search:
+    build: {context: ., dockerfile: search/Dockerfile}
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/flights
+      PROVIDERS: provider1=http://provider1:8000,provider2=http://provider2:8000,provider3=http://provider3:8000
+    # п. 4: py-spy читает память процесса через ptrace, Docker по умолчанию его запрещает.
+    cap_add:
+      - SYS_PTRACE
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 2s
+      retries: 30
+    # п. 3: сервис поиска стартует после готовности БД и всех заглушек.
+    depends_on:
+      db: {condition: service_healthy}
+      provider1: {condition: service_healthy}
+      provider2: {condition: service_healthy}
+      provider3: {condition: service_healthy}
+
+  # Разовая загрузка рейсов в БД (задача 3.1): docker compose run --rm seed
+  seed:
+    build: {context: ., dockerfile: seed/Dockerfile}
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/flights
+    depends_on:
+      db: {condition: service_healthy}
+
+volumes:
+  pgdata:

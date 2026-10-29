@@ -1,0 +1,28 @@
+{
+  "search": {
+    "error_kinds": {
+      "ConnectError": 247,
+      "ReadTimeout": 30
+    },
+    "requests": 277,
+    "rps": 4.62,
+    "p50_ms": 2170.5,
+    "p95_ms": 30175.3,
+    "p99_ms": 30209.5,
+    "max_ms": 30213.9,
+    "errors_percent": 100.0
+  },
+  "health": {
+    "error_kinds": {
+      "ConnectError": 527,
+      "ReadTimeout": 73
+    },
+    "requests": 600,
+    "rps": 10.0,
+    "p50_ms": 18297.8,
+    "p95_ms": 50063.1,
+    "p99_ms": 50107.1,
+    "max_ms": 50318.3,
+    "errors_percent": 100.0
+  }
+}
