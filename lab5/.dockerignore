@@ -1,0 +1,12 @@
+*
+!api/
+!api/**
+!worker/
+!worker/**
+!notifier/
+!notifier/**
+!analytics/
+!analytics/**
+!common/
+!common/**
+**/__pycache__/

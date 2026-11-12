@@ -1,0 +1,103 @@
+x-database-env: &database-env
+  POSTGRES_USER: loyalty
+  POSTGRES_PASSWORD: loyalty_dev
+  POSTGRES_DB: loyalty
+x-rabbitmq-env: &rabbitmq-env
+  RABBITMQ_DEFAULT_USER: loyalty
+  RABBITMQ_DEFAULT_PASS: loyalty_dev
+x-broker-url: &broker-url amqp://loyalty:loyalty_dev@rabbitmq:5672/
+x-storage-urls: &storage-urls
+  DATABASE_URL: postgresql+asyncpg://loyalty:loyalty_dev@postgres:5432/loyalty
+  RABBITMQ_URL: *broker-url
+
+services:
+  postgres:
+    image: postgres:17
+    environment: *database-env
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    hostname: rabbitmq
+    environment: *rabbitmq-env
+    ports:
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_port_listener 5672"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment: *storage-urls
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/worker-ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment: *storage-urls
+    ports:
+      - "8000:8000"
+    depends_on:
+      worker:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  notifier:
+    build:
+      context: .
+      dockerfile: notifier/Dockerfile
+    environment:
+      RABBITMQ_URL: *broker-url
+      MIN_DELAY_MS: ${MIN_DELAY_MS:-200}
+      MAX_DELAY_MS: ${MAX_DELAY_MS:-1500}
+      UNSUBSCRIBED: ${UNSUBSCRIBED:-}
+    ports:
+      - "8001:8001"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  analytics:
+    build:
+      context: .
+      dockerfile: analytics/Dockerfile
+    environment:
+      RABBITMQ_URL: *broker-url
+    ports:
+      - "8002:8002"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
